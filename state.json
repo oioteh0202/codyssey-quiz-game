@@ -7,19 +7,7 @@
     {
       "question": "2 + 2는 얼마인가?",
       "answer": "4"
-    },
-    {
-      "question": "나는 코딩이 싫어요 참 거짓",
-      "answer": "거짓"
-    },
-    {
-      "question": "나는 공부가 싫어요 참 거짓",
-      "answer": "참"
-    },
-    {
-      "question": "집에 가고 싶어요 참 거짓",
-      "answer": "참"
     }
   ],
-  "high_score": 4
+  "high_score": 2
 }

@@ -34,12 +34,12 @@ class QuizGame:
     def add_quiz(self):
         self.print_section("퀴즈 추가")
 
-        question = input("문제를 입력하세요: ").strip()
+        question = self.safe_input("문제를 입력하세요: ")
         if not question:
             print("문제는 비워둘 수 없습니다.")
             return
 
-        answer = input("정답을 입력하세요: ").strip()
+        answer = self.safe_input("정답을 입력하세요: ")
         if not answer:
             print("정답은 비워둘 수 없습니다.")
             return
@@ -74,7 +74,7 @@ class QuizGame:
         for index, quiz in enumerate(self.quizzes, start=1):
             self.print_divider()
             print(f"{index}. {quiz.question}")
-            user_answer = input("정답을 입력하세요: ").strip()
+            user_answer = self.safe_input("정답을 입력하세요: ")
 
             if user_answer == quiz.answer:
                 print("정답입니다.")
@@ -100,7 +100,7 @@ class QuizGame:
     def run(self):
         while True:
             self.show_menu()
-            choice = input("메뉴를 선택하세요: ").strip()
+            choice = self.safe_input("메뉴를 선택하세요: ")
 
             if choice == "1":
                 self.play_quiz()
@@ -119,3 +119,15 @@ class QuizGame:
                 break
             else:
                 print("올바른 번호를 입력하세요.")
+
+    def safe_input(self, message):
+        try:
+            return input(message).strip()
+        except KeyboardInterrupt:
+            print("\n입력이 취소되었습니다. 프로그램을 종료합니다.")
+            self.save()
+            raise SystemExit
+        except EOFError:
+            print("\n입력을 더 이상 받을 수 없습니다. 프로그램을 종료합니다.")
+            self.save()
+            raise SystemExit
