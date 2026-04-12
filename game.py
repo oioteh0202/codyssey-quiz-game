@@ -48,7 +48,7 @@ class QuizGame:
             if choice == "1":
                 print("아직 구현 전: 퀴즈 풀기")
             elif choice == "2":
-                print("아직 구현 전: 퀴즈 추가")
+                self.add_quiz()
             elif choice == "3":
                 self.list_quizzes()
             elif choice == "4":
@@ -59,3 +59,20 @@ class QuizGame:
                 break
             else:
                 print("올바른 번호를 입력하세요.")
+
+
+    def add_quiz(self):
+        question = input("문제를 입력하세요: ").strip()
+        if not question:
+            print("문제는 비워둘 수 없습니다.")
+            return
+
+        answer = input("정답을 입력하세요: ").strip()
+        if not answer:
+            print("정답은 비워둘 수 없습니다.")
+            return
+
+        new_quiz = Quiz(question, answer)
+        self.quizzes.append(new_quiz)
+        self.save()
+        print("퀴즈가 추가되었습니다.")
