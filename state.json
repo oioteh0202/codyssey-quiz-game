@@ -1,0 +1,15 @@
+{
+  "player_name": "Player",
+  "current_index": 2,
+  "score": 2,
+  "question_order": [
+    1,
+    2
+  ],
+  "answers": [
+    "4",
+    "git push"
+  ],
+  "settings": {},
+  "status": "finished"
+}

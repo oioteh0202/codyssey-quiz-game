@@ -1,7 +1,28 @@
-{
-  "quizzes": [
-    { "id": 1, "question": "2+2= (숫자로만 답하시오.)", "answer": "4" }
-  ],
-  "high_score": 0,
-  "last_score": 0
-}
+[
+  {
+    "id": 1,
+    "text": "2+2는 얼마인가요?",
+    "choices": ["1", "2", "3", "4"],
+    "answer": "4",
+    "difficulty": "easy"
+  },
+  {
+    "id": 2,
+    "text": "Git에서 원격 저장소로 올리는 명령은 무엇인가요?",
+    "choices": ["git pull", "git push", "git clone", "git init"],
+    "answer": "git push",
+    "difficulty": "easy"
+  },
+  {
+    "id": 3,
+    "text": "MVC에서 Controller의 역할은 무엇인가요?",
+    "choices": [
+      "데이터 저장만 담당한다",
+      "사용자 입력과 흐름을 제어한다",
+      "화면 출력만 담당한다",
+      "운영체제를 제어한다"
+    ],
+    "answer": "사용자 입력과 흐름을 제어한다",
+    "difficulty": "easy"
+  }
+]
