@@ -431,7 +431,6 @@ class QuizController:
                 "correct_count": self.game_state.correct_count,
                 "wrong_count": wrong_count,
                 "random_enabled": self.game_state.options.get("random_enabled", False),
-                "hint_used_count": 0,
             }
         )
 
