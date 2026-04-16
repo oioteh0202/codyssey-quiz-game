@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 from model import GameState, QuestionBank, StateStore
 from view import CLIView
-
+from model import GameState, QuestionBank, QuizQuestion, StateStore
 
 class QuizController:
     def __init__(self, view: CLIView, store: StateStore) -> None:
@@ -55,7 +55,7 @@ class QuizController:
             return True
 
         if choice == 2:
-            self.view.show_message("문제 추가는 다음 단계에서 구현합니다.")
+            self.add_question()
             return True
 
         if choice == 3:
@@ -147,10 +147,37 @@ class QuizController:
         self.finalize_completed_session()
         self.save_state()
 
-
     def add_question(self) -> None:
         """문제 추가"""
-        pass
+        if self.question_bank is None:
+            self.view.show_error("문제 은행을 불러오지 못했습니다.")
+            return
+
+        try:
+            # View에서 문제 문장, 보기 4개, 정답 번호, 힌트를 입력받는다.
+            question_data = self.view.prompt_new_question_data()
+        except (KeyboardInterrupt, EOFError):
+            # 입력 도중 중단되면 현재 작업만 취소하고 메인 메뉴로 돌아간다.
+            self.view.show_message("\n문제 추가를 취소하고 메인 메뉴로 돌아갑니다.")
+            return
+
+        # 새 문제는 QuestionBank에서 다음 id를 받아 생성한다.
+        new_question = QuizQuestion(
+            id=self.question_bank.next_id(),
+            question=question_data["question"],
+            choices=question_data["choices"],
+            answer=question_data["answer"],
+            hint=question_data["hint"],
+        )
+
+        # 문제 데이터가 과제 조건에 맞지 않으면 추가하지 않는다.
+        if not new_question.is_valid():
+            self.view.show_error("문제 형식이 올바르지 않아 추가하지 못했습니다.")
+            return
+
+        self.question_bank.add_question(new_question)
+        self.save_state()
+        self.view.show_message("새 문제가 추가되었습니다.")
 
     def show_question_list(self) -> None:
         """문제 목록 보기"""
