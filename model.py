@@ -229,27 +229,57 @@ class StateStore:
             with open(self.path, "r", encoding="utf-8") as file:
                 raw = json.load(file)
 
-            # 저장된 문제 목록을 QuizQuestion 객체 리스트로 복원한다.
-            questions_raw = raw.get("questions", [])
-            question_bank = QuestionBank(
-                [QuizQuestion.from_dict(item) for item in questions_raw if isinstance(item, dict)]
-            )
+            # 최상위 구조가 dict가 아니면 손상된 파일로 보고 기본 상태를 사용한다.
+            if not isinstance(raw, dict):
+                return self.build_default_state()
 
-            # 문제 목록이 비어 있으면 기본 문제 세트로 대체한다.
+            # questions는 리스트여야 한다. 아니면 빈 리스트로 처리한다.
+            questions_raw = raw.get("questions", [])
+            if not isinstance(questions_raw, list):
+                questions_raw = []
+
+            valid_questions = []
+
+            # 문제 하나가 손상돼도 전체 로드를 망치지 않도록 개별 복원한다.
+            for item in questions_raw:
+                if not isinstance(item, dict):
+                    continue
+
+                try:
+                    question = QuizQuestion.from_dict(item)
+                except (KeyError, TypeError, ValueError):
+                    continue
+
+                if question.is_valid():
+                    valid_questions.append(question)
+
+            question_bank = QuestionBank(valid_questions)
+
+            # 유효한 문제가 하나도 없으면 기본 문제 세트로 대체한다.
             if not question_bank.get_all():
                 question_bank = QuestionBank.default_bank()
 
-            # 진행 상태, 히스토리, 설정을 각각 복원한다.
-            game_state = GameState.from_dict(raw.get("current_session", {}))
+            # current_session은 dict여야 한다. 아니면 빈 상태로 처리한다.
+            current_session_raw = raw.get("current_session", {})
+            if not isinstance(current_session_raw, dict):
+                current_session_raw = {}
+            game_state = GameState.from_dict(current_session_raw)
+
+            # history는 리스트여야 한다. 아니면 빈 리스트로 처리한다.
             history = raw.get("history", [])
-            settings = raw.get(
-                "settings",
-                {
-                    "random_enabled": False,
-                    "question_count": None,
-                    "hint_enabled": False,
-                },
-            )
+            if not isinstance(history, list):
+                history = []
+
+            # settings는 dict여야 한다. 아니면 기본 설정으로 처리한다.
+            settings = raw.get("settings", {})
+            if not isinstance(settings, dict):
+                settings = {}
+
+            settings = {
+                "random_enabled": bool(settings.get("random_enabled", False)),
+                "question_count": settings.get("question_count"),
+                "hint_enabled": bool(settings.get("hint_enabled", False)),
+            }
 
             return {
                 "question_bank": question_bank,
@@ -258,7 +288,7 @@ class StateStore:
                 "settings": settings,
             }
 
-        except (FileNotFoundError, json.JSONDecodeError, TypeError, ValueError):
+        except (FileNotFoundError, json.JSONDecodeError, TypeError, ValueError, KeyError, OSError):
             # 파일이 없거나 손상된 경우에도 프로그램이 실행되도록 기본 상태를 반환한다.
             return self.build_default_state()
 
