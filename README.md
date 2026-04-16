@@ -80,6 +80,7 @@ codyssey-quiz-game
         - 메뉴 번호, 정답 번호, 새 문제 입력 시 빈 입력 / 숫자 변환 실패 / 범위 이탈을 검사합니다.
 
 
+
 ## 6. 데이터 파일 설명 (state.json)
 이 프로젝트는 프로젝트 루트의 `state.json` 파일을 사용해 데이터를 저장합니다.  
 이 파일에는 문제 목록, 설정값, 현재 진행 중인 세션 정보, 플레이 기록이 저장됩니다.  
@@ -139,8 +140,9 @@ codyssey-quiz-game
   },
   "history": []
 }
+```
+
 
 ## 7. Git 작업 기록
 
-![깃작업기록](./image/gitlog.png)
-
+![gitlog](./image/gitlog.png)
