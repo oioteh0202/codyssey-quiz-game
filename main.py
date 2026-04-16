@@ -134,6 +134,10 @@ class QuizController:
                 total_count=total_count,
             )
 
+            # 힌트 기능이 켜져 있고 현재 문제에 힌트가 있으면 함께 보여준다.
+            if self.game_state.options.get("hint_enabled", False) and question.hint:
+                self.view.show_message(f"힌트: {question.hint}")
+
             try:
                 selected = self.view.prompt_answer()
             except (KeyboardInterrupt, EOFError):
@@ -236,7 +240,7 @@ class QuizController:
                 continue
 
             if choice == 3:
-                self.view.show_message("힌트 설정은 다음 단계에서 구현합니다.")
+                self.toggle_hint_mode()
                 continue
 
             if choice == 4:
@@ -319,6 +323,22 @@ class QuizController:
             self.save_state()
             self.view.show_message(f"문제 수가 {count}개로 저장되었습니다.")
             return
+
+    def toggle_hint_mode(self) -> None:
+        """힌트 설정"""
+        current = self.settings.get("hint_enabled", False)
+
+        # 진행 중인 게임이 있으면 현재 세션에는 영향을 주지 않는다고 안내한다.
+        if self.game_state is not None and self.game_state.in_progress:
+            self.view.show_message("현재 진행 중인 게임에는 적용되지 않고, 다음 새 게임부터 적용됩니다.")
+
+        # 현재 설정을 반전시켜 ON/OFF로 저장한다.
+        new_value = not current
+        self.settings["hint_enabled"] = new_value
+        self.save_state()
+
+        status = "ON" if new_value else "OFF"
+        self.view.show_message(f"힌트 설정이 {status}으로 저장되었습니다.")
 
     def delete_question(self) -> None:
         """문제 삭제"""
