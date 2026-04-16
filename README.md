@@ -141,5 +141,6 @@ codyssey-quiz-game
 }
 
 ## 7. Git 작업 기록
-![깃 작업 기록](./image/git%20log%20--oneline%20--graph.png)
+
+![깃작업기록](./image/gitlog--oneline--graph.png)
 
