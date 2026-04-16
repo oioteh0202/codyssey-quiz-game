@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 import json
-
+import random
 
 @dataclass
 class QuizQuestion:
@@ -199,10 +199,19 @@ class QuestionBank:
         return max(question.id for question in self.questions) + 1
 
     def build_quiz_set(self, random_enabled: bool, question_count: int | None) -> list[int]:
-        # 현재는 기본 출제용으로 문제 id 목록을 만든다.
-        # 랜덤 출제는 다음 단계에서 여기에 연결할 수 있다.
+        # 현재 등록된 문제 id 목록을 만든다.
         ids = [question.id for question in self.questions]
-        return ids if question_count is None else ids[:question_count]
+
+        # 랜덤 출제가 켜져 있으면 문제 순서를 섞는다.
+        if random_enabled:
+            random.shuffle(ids)
+
+        # question_count가 None이면 전체 문제를 그대로 사용한다.
+        if question_count is None:
+            return ids
+
+        # 문제 수가 설정되어 있으면 앞에서부터 필요한 개수만 사용한다.
+        return ids[:question_count]
 
     def to_dict_list(self) -> list[dict]:
         # 전체 문제 목록을 JSON 저장 가능한 dict 리스트로 변환한다.

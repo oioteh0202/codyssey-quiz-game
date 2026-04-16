@@ -31,25 +31,31 @@ class QuizController:
         """메인 메뉴 루프"""
         # 사용자가 종료를 선택할 때까지 메인 메뉴를 반복한다.
         while True:
-            # 진행 중 세션이 있으면 메뉴 1번을 '이어하기'로 보여주기 위해 상태를 계산한다.
-            has_saved_session = bool(self.game_state and self.game_state.in_progress)
+            try:
+                # 진행 중 세션이 있으면 메뉴 1번을 '이어하기'로 보여주기 위해 상태를 계산한다.
+                has_saved_session = bool(self.game_state and self.game_state.in_progress)
 
-            # 현재 상태에 맞는 메인 메뉴를 출력한다.
-            self.view.show_main_menu(has_saved_session)
+                # 현재 상태에 맞는 메인 메뉴를 출력한다.
+                self.view.show_main_menu(has_saved_session)
 
-            # 메뉴 번호 입력을 받고, 0~4 범위만 허용한다.
-            choice = self.view.prompt_menu_choice("메뉴 선택: ", range(0, 5))
+                # 메뉴 번호 입력을 받고, 0~4 범위만 허용한다.
+                choice = self.view.prompt_menu_choice("메뉴 선택: ", range(0, 5))
 
-            # 선택한 메뉴를 처리한다.
-            should_continue = self.handle_main_menu(choice)
+                # 선택한 메뉴를 처리한다.
+                should_continue = self.handle_main_menu(choice)
 
-            # False가 반환되면 프로그램을 종료한다.
-            if not should_continue:
+                # False가 반환되면 프로그램을 종료한다.
+                if not should_continue:
+                    break
+
+            except (KeyboardInterrupt, EOFError):
+                # 메인 메뉴에서 중단되면 현재 상태를 저장하고 종료한다.
+                self.save_state()
+                self.view.show_message("\n프로그램을 종료합니다.")
                 break
 
     def handle_main_menu(self, choice: int) -> bool:
         """메인 메뉴 선택 처리. 종료 시 False 반환"""
-        # 지금 단계에서는 실제 기능 대신 메뉴 흐름만 연결한다.
         if choice == 1:
             self.start_or_resume_quiz()
             return True
@@ -64,7 +70,7 @@ class QuizController:
             return True
 
         if choice == 4:
-            self.view.show_message("추가 기능은 다음 단계에서 구현합니다.")
+            self.open_bonus_menu()
             return True
 
         if choice == 0:
@@ -128,7 +134,14 @@ class QuizController:
                 total_count=total_count,
             )
 
-            selected = self.view.prompt_answer()
+            try:
+                selected = self.view.prompt_answer()
+            except (KeyboardInterrupt, EOFError):
+                # 퀴즈 진행 중 중단되면 현재 세션을 저장하고 메인 메뉴로 돌아간다.
+                self.save_state()
+                self.view.show_message("\n퀴즈를 중단하고 메인 메뉴로 돌아갑니다.")
+                return
+
             is_correct = selected == question.answer
 
             self.game_state.record_answer(
@@ -209,7 +222,161 @@ class QuizController:
 
     def open_bonus_menu(self) -> None:
         """보너스 기능 메뉴"""
-        pass
+        # 보너스 기능은 별도 하위 메뉴에서 처리한다.
+        while True:
+            self.view.show_bonus_menu()
+            choice = self.view.prompt_menu_choice("추가 기능 선택: ", range(0, 6))
+
+            if choice == 1:
+                self.toggle_random_mode()
+                continue
+
+            if choice == 2:
+                self.select_question_count()
+                continue
+
+            if choice == 3:
+                self.view.show_message("힌트 설정은 다음 단계에서 구현합니다.")
+                continue
+
+            if choice == 4:
+                self.delete_question()
+                continue
+
+            if choice == 5:
+                # 저장된 점수 기록을 그대로 출력한다.
+                self.view.display_history(self.history)
+                continue
+
+            if choice == 0:
+                # 0번을 누르면 메인 메뉴로 돌아간다.
+                self.view.show_message("메인 메뉴로 돌아갑니다.")
+                return
+
+    def toggle_random_mode(self) -> None:
+        """랜덤 출제 설정"""
+        current = self.settings.get("random_enabled", False)
+
+        # 진행 중인 게임이 있으면 현재 세션에는 영향을 주지 않는다고 안내한다.
+        if self.game_state is not None and self.game_state.in_progress:
+            self.view.show_message("현재 진행 중인 게임에는 적용되지 않고, 다음 새 게임부터 적용됩니다.")
+
+        # 현재 상태를 반전시켜 ON/OFF 토글로 처리한다.
+        new_value = not current
+        self.settings["random_enabled"] = new_value
+        self.save_state()
+
+        status = "ON" if new_value else "OFF"
+        self.view.show_message(f"랜덤 출제 설정이 {status}로 저장되었습니다.")
+
+    def select_question_count(self) -> None:
+        """문제 수 선택"""
+        if self.question_bank is None:
+            self.view.show_error("문제 목록을 불러오지 못했습니다.")
+            return
+
+        total_questions = len(self.question_bank.get_all())
+        if total_questions == 0:
+            self.view.show_message("설정할 문제가 없습니다.")
+            return
+
+        # 진행 중 게임이 있으면 현재 세션에는 영향을 주지 않는다고 안내한다.
+        if self.game_state is not None and self.game_state.in_progress:
+            self.view.show_message("현재 진행 중인 게임에는 적용되지 않고, 다음 새 게임부터 적용됩니다.")
+
+        self.view.show_message(f"현재 등록된 문제 수: {total_questions}")
+        self.view.show_message("출제할 문제 수를 입력하세요. (전체 출제: 0)")
+
+        while True:
+            try:
+                raw = self.view.prompt("문제 수 선택: ").strip()
+            except (KeyboardInterrupt, EOFError):
+                self.view.show_message("\n문제 수 선택을 취소하고 보너스 메뉴로 돌아갑니다.")
+                return
+
+            if raw == "":
+                self.view.show_error("빈 입력은 허용되지 않습니다.")
+                continue
+
+            try:
+                count = int(raw)
+            except ValueError:
+                self.view.show_error("숫자만 입력해 주세요.")
+                continue
+
+            if count < 0 or count > total_questions:
+                self.view.show_error(f"0부터 {total_questions} 사이의 숫자를 입력해 주세요.")
+                continue
+
+            # 0은 전체 문제 출제를 뜻하므로 None으로 저장한다.
+            if count == 0:
+                self.settings["question_count"] = None
+                self.save_state()
+                self.view.show_message("문제 수 설정이 '전체 출제'로 저장되었습니다.")
+                return
+
+            self.settings["question_count"] = count
+            self.save_state()
+            self.view.show_message(f"문제 수가 {count}개로 저장되었습니다.")
+            return
+
+    def delete_question(self) -> None:
+        """문제 삭제"""
+        if self.question_bank is None:
+            self.view.show_error("문제 목록을 불러오지 못했습니다.")
+            return
+
+        # 진행 중인 게임이 있으면 출제 목록과 충돌할 수 있으므로 삭제를 막는다.
+        if self.game_state is not None and self.game_state.in_progress:
+            self.view.show_error("진행 중인 게임이 있을 때는 문제를 삭제할 수 없습니다.")
+            return
+
+        questions = self.question_bank.get_all()
+        if not questions:
+            self.view.show_message("삭제할 문제가 없습니다.")
+            return
+
+        # 먼저 현재 문제 목록을 보여주고, 사용자가 id를 보고 선택하게 한다.
+        self.show_question_list()
+
+        while True:
+            try:
+                raw = self.view.prompt("삭제할 문제 id를 입력하세요 (취소: 0): ").strip()
+            except (KeyboardInterrupt, EOFError):
+                self.view.show_message("\n문제 삭제를 취소하고 보너스 메뉴로 돌아갑니다.")
+                return
+
+            if raw == "":
+                self.view.show_error("빈 입력은 허용되지 않습니다.")
+                continue
+
+            try:
+                question_id = int(raw)
+            except ValueError:
+                self.view.show_error("숫자만 입력해 주세요.")
+                continue
+
+            if question_id == 0:
+                self.view.show_message("문제 삭제를 취소합니다.")
+                return
+
+            if question_id < 0:
+                self.view.show_error("0 이상의 번호를 입력해 주세요.")
+                continue
+
+            target = self.question_bank.get_by_id(question_id)
+            if target is None:
+                self.view.show_error("해당 id의 문제가 없습니다.")
+                continue
+
+            deleted = self.question_bank.delete_question(question_id)
+            if not deleted:
+                self.view.show_error("문제를 삭제하지 못했습니다.")
+                return
+
+            self.save_state()
+            self.view.show_message(f"{question_id}번 문제가 삭제되었습니다.")
+            return
 
     def save_state(self) -> None:
         """현재 상태 저장"""
