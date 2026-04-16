@@ -104,8 +104,70 @@ class CLIView:
             return answer
 
     def prompt_new_question_data(self) -> dict:
-        # 문제 추가 입력은 다음 단계에서 구현한다.
-        pass
+        # 문제 추가에 필요한 입력을 순서대로 받아 dict 형태로 반환한다.
+        while True:
+            try:
+                question = self.prompt("문제를 입력하세요: ").strip()
+            except (KeyboardInterrupt, EOFError):
+                # 중단 처리 정책은 Controller가 결정하도록 예외를 다시 넘긴다.
+                raise
+
+            if question == "":
+                self.show_error("문제 문장은 비워둘 수 없습니다.")
+                continue
+            break
+
+        choices = []
+        for index in range(1, 5):
+            while True:
+                try:
+                    choice = self.prompt(f"{index}번 보기를 입력하세요: ").strip()
+                except (KeyboardInterrupt, EOFError):
+                    raise
+
+                if choice == "":
+                    self.show_error("보기는 비워둘 수 없습니다.")
+                    continue
+
+                choices.append(choice)
+                break
+
+        while True:
+            try:
+                raw_answer = self.prompt("정답 번호를 입력하세요 (1~4): ").strip()
+            except (KeyboardInterrupt, EOFError):
+                raise
+
+            if raw_answer == "":
+                self.show_error("정답 번호는 비워둘 수 없습니다.")
+                continue
+
+            try:
+                answer = int(raw_answer)
+            except ValueError:
+                self.show_error("정답 번호는 1부터 4 사이의 숫자여야 합니다.")
+                continue
+
+            if answer < 1 or answer > 4:
+                self.show_error("정답 번호는 1부터 4까지만 입력할 수 있습니다.")
+                continue
+
+            break
+
+        try:
+            hint_raw = self.prompt("힌트를 입력하세요 (없으면 엔터): ").strip()
+        except (KeyboardInterrupt, EOFError):
+            raise
+
+        # 힌트는 선택 입력이므로 빈 문자열이면 None으로 통일한다.
+        hint = hint_raw if hint_raw != "" else None
+
+        return {
+            "question": question,
+            "choices": choices,
+            "answer": answer,
+            "hint": hint,
+        }
 
     def display_question_list(self, questions: list[dict]) -> None:
         # 등록된 문제의 id와 문제 문장만 간단히 출력한다.
