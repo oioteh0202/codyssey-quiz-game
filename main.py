@@ -23,11 +23,41 @@ class QuizController:
 
     def run(self) -> None:
         """메인 메뉴 루프"""
-        pass
+        while True:
+            has_saved_session = bool(self.game_state and self.game_state.in_progress)
+            self.view.show_main_menu(has_saved_session)
+            choice = self.view.prompt_menu_choice("메뉴 선택: ", range(0, 5))
+
+            should_continue = self.handle_main_menu(choice)
+            if not should_continue:
+                break
 
     def handle_main_menu(self, choice: int) -> bool:
         """메인 메뉴 선택 처리. 종료 시 False 반환"""
-        pass
+        # 지금 단계에서는 실제 기능 대신 메뉴 흐름만 연결한다.
+        if choice == 1:
+            self.view.show_message("퀴즈 시작/이어하기는 다음 단계에서 구현합니다.")
+            return True
+
+        if choice == 2:
+            self.view.show_message("문제 추가는 다음 단계에서 구현합니다.")
+            return True
+
+        if choice == 3:
+            self.show_question_list()
+            return True
+
+        if choice == 4:
+            self.view.show_message("추가 기능은 다음 단계에서 구현합니다.")
+            return True
+
+        if choice == 0:
+            self.save_state()
+            self.view.show_message("프로그램을 종료합니다.")
+            return False
+
+        self.view.show_error("잘못된 메뉴 선택입니다.")
+        return True
 
     def start_or_resume_quiz(self) -> None:
         """새 게임 시작 또는 이어하기"""
@@ -43,7 +73,25 @@ class QuizController:
 
     def show_question_list(self) -> None:
         """문제 목록 보기"""
-        pass
+        if self.question_bank is None:
+            self.view.show_error("문제 목록을 불러오지 못했습니다.")
+            return
+
+        questions = self.question_bank.get_all()
+        if not questions:
+            self.view.show_message("등록된 문제가 없습니다.")
+            return
+
+        question_dicts = []
+        for question in questions:
+            question_dicts.append(
+                {
+                    "id": question.id,
+                    "question": question.question,
+                }
+            )
+
+        self.view.display_question_list(question_dicts)
 
     def open_bonus_menu(self) -> None:
         """보너스 기능 메뉴"""

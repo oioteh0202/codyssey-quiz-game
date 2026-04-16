@@ -29,7 +29,27 @@ class CLIView:
         return input(message)
 
     def prompt_menu_choice(self, message: str, valid_range: range) -> int:
-        pass
+        # 메뉴 입력은 공백/문자/범위 이탈을 모두 막는다.
+        while True:
+            raw = self.prompt(message).strip()
+
+            if raw == "":
+                self.show_error("빈 입력은 허용되지 않습니다.")
+                continue
+
+            try:
+                choice = int(raw)
+            except ValueError:
+                self.show_error("숫자만 입력해 주세요.")
+                continue
+
+            if choice not in valid_range:
+                min_value = valid_range.start
+                max_value = valid_range.stop - 1
+                self.show_error(f"{min_value}부터 {max_value} 사이의 번호를 입력해 주세요.")
+                continue
+
+            return choice
 
     def display_question(
         self,

@@ -7,6 +7,7 @@ import json
 
 @dataclass
 class QuizQuestion:
+    # 퀴즈 문제 1개를 표현하는 데이터 클래스
     id: int
     question: str
     choices: list[str]
@@ -14,6 +15,7 @@ class QuizQuestion:
     hint: Optional[str] = None
 
     def is_valid(self) -> bool:
+        # 문제 데이터가 과제 조건에 맞는지 검사한다.
         return (
             isinstance(self.id, int)
             and isinstance(self.question, str)
@@ -26,6 +28,7 @@ class QuizQuestion:
         )
 
     def to_dict(self) -> dict:
+        # JSON 저장을 위해 객체를 dict 형태로 바꾼다.
         return {
             "id": self.id,
             "question": self.question,
@@ -36,6 +39,7 @@ class QuizQuestion:
 
     @classmethod
     def from_dict(cls, data: dict) -> "QuizQuestion":
+        # JSON에서 읽은 dict를 QuizQuestion 객체로 복원한다.
         return cls(
             id=data["id"],
             question=data["question"],
@@ -47,6 +51,7 @@ class QuizQuestion:
 
 @dataclass
 class GameState:
+    # 현재 진행 중인 게임 상태를 저장하는 데이터 클래스
     in_progress: bool = False
     question_ids: list[int] = field(default_factory=list)
     current_index: int = 0
@@ -55,6 +60,7 @@ class GameState:
     options: dict = field(default_factory=dict)
 
     def start_new(self, question_ids: list[int], options: dict) -> None:
+        # 새 게임을 시작할 때 상태를 초기화한다.
         self.in_progress = True
         self.question_ids = question_ids
         self.current_index = 0
@@ -63,6 +69,7 @@ class GameState:
         self.options = options
 
     def record_answer(self, question_id: int, selected: int, correct: bool) -> None:
+        # 사용자의 답변 결과를 기록한다.
         self.answers.append(
             {
                 "question_id": question_id,
@@ -70,14 +77,20 @@ class GameState:
                 "correct": correct,
             }
         )
+
+        # 정답이면 맞춘 개수를 증가시킨다.
         if correct:
             self.correct_count += 1
+
+        # 다음 문제로 넘어가기 위해 현재 인덱스를 증가시킨다.
         self.current_index += 1
 
     def is_finished(self) -> bool:
+        # 현재 인덱스가 전체 문제 수에 도달했는지 검사한다.
         return self.in_progress and self.current_index >= len(self.question_ids)
 
     def clear(self) -> None:
+        # 게임이 끝났거나 취소되었을 때 상태를 비운다.
         self.in_progress = False
         self.question_ids = []
         self.current_index = 0
@@ -86,6 +99,7 @@ class GameState:
         self.options = {}
 
     def to_dict(self) -> dict:
+        # JSON 저장을 위해 현재 상태를 dict로 변환한다.
         return {
             "in_progress": self.in_progress,
             "question_ids": self.question_ids,
@@ -97,6 +111,7 @@ class GameState:
 
     @classmethod
     def from_dict(cls, data: dict) -> "GameState":
+        # JSON에서 읽은 dict를 GameState 객체로 복원한다.
         return cls(
             in_progress=data.get("in_progress", False),
             question_ids=data.get("question_ids", []),
@@ -108,11 +123,13 @@ class GameState:
 
 
 class QuestionBank:
+    # 전체 문제 목록을 관리하는 클래스
     def __init__(self, questions: list[QuizQuestion]) -> None:
         self.questions = questions
 
     @classmethod
     def default_bank(cls) -> "QuestionBank":
+        # state.json이 없거나 손상됐을 때 사용할 기본 문제 세트다.
         questions = [
             QuizQuestion(
                 id=1,
@@ -153,18 +170,22 @@ class QuestionBank:
         return cls(questions)
 
     def get_all(self) -> list[QuizQuestion]:
+        # 등록된 전체 문제 목록을 반환한다.
         return self.questions
 
     def get_by_id(self, question_id: int) -> QuizQuestion | None:
+        # 문제 id로 특정 문제를 찾는다.
         for question in self.questions:
             if question.id == question_id:
                 return question
         return None
 
     def add_question(self, question: QuizQuestion) -> None:
+        # 새 문제를 문제 목록에 추가한다.
         self.questions.append(question)
 
     def delete_question(self, question_id: int) -> bool:
+        # 문제 id와 일치하는 문제를 삭제한다.
         for index, question in enumerate(self.questions):
             if question.id == question_id:
                 del self.questions[index]
@@ -172,35 +193,44 @@ class QuestionBank:
         return False
 
     def next_id(self) -> int:
+        # 새 문제를 추가할 때 사용할 다음 id를 계산한다.
         if not self.questions:
             return 1
         return max(question.id for question in self.questions) + 1
 
     def build_quiz_set(self, random_enabled: bool, question_count: int | None) -> list[int]:
+        # 현재는 기본 출제용으로 문제 id 목록을 만든다.
+        # 랜덤 출제는 다음 단계에서 여기에 연결할 수 있다.
         ids = [question.id for question in self.questions]
         return ids if question_count is None else ids[:question_count]
 
     def to_dict_list(self) -> list[dict]:
+        # 전체 문제 목록을 JSON 저장 가능한 dict 리스트로 변환한다.
         return [question.to_dict() for question in self.questions]
 
 
 class StateStore:
+    # state.json 파일 입출력을 담당하는 저장소 클래스
     def __init__(self, path: str) -> None:
         self.path = path
 
     def load(self) -> dict:
         try:
+            # 저장 파일을 읽어 JSON 데이터를 불러온다.
             with open(self.path, "r", encoding="utf-8") as file:
                 raw = json.load(file)
 
+            # 저장된 문제 목록을 QuizQuestion 객체 리스트로 복원한다.
             questions_raw = raw.get("questions", [])
             question_bank = QuestionBank(
                 [QuizQuestion.from_dict(item) for item in questions_raw if isinstance(item, dict)]
             )
 
+            # 문제 목록이 비어 있으면 기본 문제 세트로 대체한다.
             if not question_bank.get_all():
                 question_bank = QuestionBank.default_bank()
 
+            # 진행 상태, 히스토리, 설정을 각각 복원한다.
             game_state = GameState.from_dict(raw.get("current_session", {}))
             history = raw.get("history", [])
             settings = raw.get(
@@ -220,6 +250,7 @@ class StateStore:
             }
 
         except (FileNotFoundError, json.JSONDecodeError, TypeError, ValueError):
+            # 파일이 없거나 손상된 경우에도 프로그램이 실행되도록 기본 상태를 반환한다.
             return self.build_default_state()
 
     def save(
@@ -229,6 +260,7 @@ class StateStore:
         history: list[dict],
         settings: dict,
     ) -> None:
+        # 현재 상태를 JSON 구조에 맞춰 정리한다.
         data = {
             "version": 1,
             "questions": question_bank.to_dict_list(),
@@ -237,10 +269,12 @@ class StateStore:
             "history": history,
         }
 
+        # 한글이 깨지지 않도록 UTF-8로 저장한다.
         with open(self.path, "w", encoding="utf-8") as file:
             json.dump(data, file, ensure_ascii=False, indent=2)
 
     def build_default_state(self) -> dict:
+        # 기본 실행 상태를 구성한다.
         return {
             "question_bank": QuestionBank.default_bank(),
             "game_state": GameState(),
