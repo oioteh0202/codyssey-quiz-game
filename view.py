@@ -189,9 +189,33 @@ class CLIView:
             print("기록이 없습니다.")
             return
 
+        # 최고 점수는 정답 비율을 우선으로 비교하고, 같으면 맞힌 개수와 최신 기록 순으로 비교한다.
+        best_record = max(
+            history,
+            key=lambda item: (
+                item.get("correct_count", 0) / item.get("question_count", 1),
+                item.get("correct_count", 0),
+                item.get("played_at", ""),
+            ),
+        )
+
+        best_correct = best_record.get("correct_count", 0)
+        best_total = best_record.get("question_count", 0)
+        best_percent = (best_correct / best_total * 100) if best_total else 0
+
+        print(f"총 플레이 수: {len(history)}")
+        print(
+            f"최고 점수: {best_correct}/{best_total} "
+            f"({best_percent:.0f}%) | {best_record.get('played_at', 'unknown')}"
+        )
+
         # 날짜와 점수를 한 줄씩 출력한다.
         for index, item in enumerate(history, start=1):
+            correct = item.get("correct_count", 0)
+            total = item.get("question_count", 0)
+            percent = (correct / total * 100) if total else 0
+
             print(
-                f'{index}. {item.get("played_at", "unknown")} | '
-                f'{item.get("correct_count", 0)}/{item.get("question_count", 0)}'
+                f"{index}. {item.get('played_at', 'unknown')} | "
+                f"{correct}/{total} ({percent:.0f}%)"
             )
